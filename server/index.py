@@ -11,24 +11,27 @@ import traceback
 import sentry_sdk
 from sentry_sdk import capture_exception, capture_message
 import logging
-from sentry_sdk.integrations.logging import LoggingIntegration
-from sentry_sdk.integrations.flask import FlaskIntegration
+# from sentry_sdk.integrations.logging import LoggingIntegration
+# from sentry_sdk.integrations.flask import FlaskIntegration
 import datetime
 
 
+openai.api_key = os.environ['OPENAI_API_KEY']
 
-sentry_sdk.init(
-    dsn=os.environ['SENTRY_DSN'],
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,
-    integrations=[FlaskIntegration()],
 
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,
-)
+
+# sentry_sdk.init(
+#     dsn=os.environ['SENTRY_DSN'],
+#     # Set traces_sample_rate to 1.0 to capture 100%
+#     # of transactions for performance monitoring.
+#     traces_sample_rate=1.0,
+#     integrations=[FlaskIntegration()],
+
+#     # Set profiles_sample_rate to 1.0 to profile 100%
+#     # of sampled transactions.
+#     # We recommend adjusting this value in production.
+#     profiles_sample_rate=1.0,
+# )
 
 
 
@@ -37,13 +40,13 @@ app = Flask(__name__)
 CORS(app)
 
 
-@app.before_request
-def log_request():
-    capture_message(
-        f"Request--> <Method: {request.method}> <URL: {request.url}> <Headers: {request.headers}> <Data: {request.data}> <Time: {datetime.datetime.now()}>",
+# @app.before_request
+# def log_request():
+#     capture_message(
+#         f"Request--> <Method: {request.method}> <URL: {request.url}> <Headers: {request.headers}> <Data: {request.data}> <Time: {datetime.datetime.now()}>",
 
-        level=logging.INFO,
-    )
+#         level=logging.INFO,
+#     )
     
 
 @app.route("/api", methods=['GET'])
@@ -159,9 +162,9 @@ def summarise_text():
                     for resp in openai.ChatCompletion.create(model=llmmodel, messages=message, temperature=0, stream=True):
                         if "content" in resp.choices[0].delta:
                             text = resp.choices[0].delta.content
-                            print(text, end='', flush=True)  # Print the live data as it comes in
-                          
-                            yield f"{text}\n\n"
+                            # print(text, end='', flush=True)  # Print the live data as it comes in
+                            final_text =text.replace('\n', '\\n')
+                            yield f"{final_text}"
                             # time.sleep(1)  # Simulating a delay
 
                 # response = openai_funcs.getResponse(False, llmmodel, message)
@@ -169,7 +172,7 @@ def summarise_text():
 
                 response = full_response
                 logger.info(response)
-                print("Response generating...", response)
+                # print("Response generating...", response)
             except AuthenticationError:
                 error = 'Incorrect API key provided. You can find your API key at https://platform.openai.com/account/api-keys.'
 
@@ -248,9 +251,9 @@ def summarise_text():
     except Exception as e:
         error = "Error: {}".format(str(e))
         logger.error(error)
-        print(traceback.format_exc())   
+        # print(traceback.format_exc())   
         return jsonify({"message": error}), 400
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(port=8000)
